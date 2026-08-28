@@ -2,22 +2,6 @@
 
 Windows 单机悬浮窗，展示当前登录账号的 OpenCode Go 额度：**5 小时滚动 / 本周 / 本月** 三个窗口的已用百分比、进度条与重置倒计时，并可查看每个窗口的**模型用量分摊**。
 
-## 截图
-
-<div align="center">
-
-![登录](screenshot/screenshot-login.png)
-
-![额度与刷新](screenshot/screenshot-refresh.png)
-
-![内容开关](screenshot/screenshot-content.png)
-
-![样式](screenshot/screenshot-color.png)
-
-![整体](screenshot/screenshot-UI.png)
-
-</div>
-
 ## 额度说明
 
 不是“日余量”。官方三档为：5 小时 `$12`、每周 `$30`、每月 `$60`（以美元额度计，实际请求数取决于模型价格）。
@@ -84,3 +68,19 @@ src/OcgStatus.App/    # WPF 悬浮窗、设置、托盘
 ## 免责声明
 
 `lite.subscription.get` / `lite.subscription.usage` 为 opencode.ai 控制台的内部接口，非稳定公开 API；字段或 server function hash 可能随版本变化，应用会在解析失败时保留上次数据并自动重试。
+
+## 截图
+
+<div align="center">
+
+![样式](screenshot/screenshot-color.png)
+
+![登录](screenshot/screenshot-login.png)
+
+![额度与刷新](screenshot/screenshot-refresh.png)
+
+![内容开关](screenshot/screenshot-content.png)
+
+![整体](screenshot/screenshot-UI.png)
+
+</div>
