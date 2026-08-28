@@ -283,8 +283,7 @@ public partial class SettingsWindow : Window
         _settings.Save(AppPaths.SettingsPath);
         ApplyAutoStart(AutoStartBox.IsChecked == true);
         Saved = true;
-        DialogResult = true;
-        Close();
+        Close(); // 非模态窗口：不设置 DialogResult（会抛异常），直接关闭即可
     }
 
     private void OnCancel(object sender, RoutedEventArgs e) => Close();
