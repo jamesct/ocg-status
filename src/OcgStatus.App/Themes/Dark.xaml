@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Dark 主题 -->
+  <SolidColorBrush x:Key="ThemeWindowBackground" Color="#232528"/>
+  <SolidColorBrush x:Key="ThemeWindowForeground" Color="#E6E7E9"/>
+  <SolidColorBrush x:Key="ThemeMutedForeground" Color="#9AA0A8"/>
+  <SolidColorBrush x:Key="ThemeBorderBrush" Color="#3A3D42"/>
+  <SolidColorBrush x:Key="ThemeBarTrackBrush" Color="#34373C"/>
+  <SolidColorBrush x:Key="ThemeHoverBrush" Color="#2F3237"/>
+</ResourceDictionary>

@@ -1,0 +1,12 @@
+bin/
+obj/
+publish/
+.vs/
+.idea/
+*.user
+*.suo
+WebView2Cache/
+TestResults/
+coverage/
+
+.env

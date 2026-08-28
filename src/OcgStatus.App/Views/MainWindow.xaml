@@ -1,0 +1,168 @@
+<Window x:Class="OcgStatus.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="OcgStatus" WindowStartupLocation="Manual"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Loaded="OnLoaded" Closing="OnClosing" LocationChanged="OnLocationChanged"
+        PreviewMouseLeftButtonDown="OnPreviewMouseDown">
+  <Window.Resources>
+    <Style x:Key="MenuGlyphButton" TargetType="Button">
+      <Setter Property="Width" Value="28"/>
+      <Setter Property="Height" Value="22"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="{DynamicResource ThemeHoverBrush}"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style TargetType="ProgressBar">
+      <Setter Property="Height" Value="8"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Background" Value="{DynamicResource ThemeBarTrackBrush}"/>
+    </Style>
+  </Window.Resources>
+  <Border x:Name="MainCard" CornerRadius="12" BorderThickness="1" Padding="12"
+          Background="{DynamicResource ThemeWindowBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}">
+    <Border.Effect>
+      <DropShadowEffect x:Name="CardShadow" BlurRadius="16" ShadowDepth="4" Opacity="0.18"/>
+    </Border.Effect>
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="28"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="22"/>
+      </Grid.RowDefinitions>
+
+      <!-- Title bar: drag area + single menu button (no time here) -->
+      <Grid x:Name="TitleBar" Grid.Row="0" Background="Transparent" MouseLeftButtonDown="OnTitleBarMouseDown">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="OpenCode Go" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"
+                     Foreground="{DynamicResource ThemeWindowForeground}"/>
+          <TextBlock x:Name="StatusDot" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11"
+                     Foreground="{DynamicResource ThemeMutedForeground}" Visibility="Collapsed"/>
+        </StackPanel>
+        <Button x:Name="MenuButton" Grid.Column="1" Style="{StaticResource MenuGlyphButton}" Content="⋮" FontSize="16" ToolTip="菜单" Click="OnMenuClick">
+          <Button.ContextMenu>
+            <ContextMenu x:Name="TitleMenu">
+              <MenuItem Header="刷新" Click="OnRefreshClick"/>
+              <MenuItem Header="登录" Click="OnLoginClick"/>
+              <MenuItem Header="设置" Click="OnSettingsClick"/>
+              <Separator/>
+              <MenuItem Header="最小化到托盘" Click="OnMinimizeClick"/>
+              <MenuItem Header="退出" Click="OnCloseClick"/>
+            </ContextMenu>
+          </Button.ContextMenu>
+        </Button>
+      </Grid>
+
+      <!-- Content -->
+      <Grid Grid.Row="1" Margin="0,8,0,8">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <StackPanel x:Name="LoadedPanel" Visibility="Collapsed">
+            <StackPanel x:Name="RollingRow" Margin="0,0,0,8" MouseEnter="OnRowMouseEnter" MouseLeave="OnRowMouseLeave" MouseLeftButtonDown="OnRowClick" ToolTipService.InitialShowDelay="300">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="5 小时额度" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                <TextBlock x:Name="RollingPct" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+              </Grid>
+              <ProgressBar x:Name="RollingBar" Maximum="100" Margin="0,4,0,2"/>
+              <TextBlock x:Name="RollingReset" FontSize="11" Foreground="{DynamicResource ThemeMutedForeground}"/>
+            </StackPanel>
+
+            <StackPanel x:Name="WeeklyRow" Margin="0,0,0,8" MouseEnter="OnRowMouseEnter" MouseLeave="OnRowMouseLeave" MouseLeftButtonDown="OnRowClick" ToolTipService.InitialShowDelay="300">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="本周额度" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                <TextBlock x:Name="WeeklyPct" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+              </Grid>
+              <ProgressBar x:Name="WeeklyBar" Maximum="100" Margin="0,4,0,2"/>
+              <TextBlock x:Name="WeeklyReset" FontSize="11" Foreground="{DynamicResource ThemeMutedForeground}"/>
+            </StackPanel>
+
+            <StackPanel x:Name="MonthlyRow" MouseEnter="OnRowMouseEnter" MouseLeave="OnRowMouseLeave" MouseLeftButtonDown="OnRowClick" ToolTipService.InitialShowDelay="300">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="本月额度" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                <TextBlock x:Name="MonthlyPct" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+              </Grid>
+              <ProgressBar x:Name="MonthlyBar" Maximum="100" Margin="0,4,0,2"/>
+              <TextBlock x:Name="MonthlyReset" FontSize="11" Foreground="{DynamicResource ThemeMutedForeground}"/>
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel x:Name="EmptyPanel" Visibility="Visible" VerticalAlignment="Center">
+            <TextBlock x:Name="EmptyText" Text="未登录或加载中…" Foreground="{DynamicResource ThemeMutedForeground}" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>
+            <Button x:Name="LoginCta" Content="打开登录" Margin="0,8,0,0" HorizontalAlignment="Center" Padding="12,4" Click="OnLoginClick"/>
+          </StackPanel>
+
+          <!-- 点击展开的模型分摊详情 -->
+          <Border x:Name="BreakdownPanel" Grid.Row="1" Visibility="Collapsed" Margin="0,8,0,0" CornerRadius="8" Padding="8"
+                  Background="{DynamicResource ThemeWindowBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="BreakdownTitle" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                <Button Grid.Column="1" Content="✕" Padding="4,0" Background="Transparent" BorderThickness="0" Click="OnBreakdownClose" ToolTip="收起"/>
+              </Grid>
+              <Border Height="1" Margin="0,4,0,4" Background="{DynamicResource ThemeBorderBrush}"/>
+              <StackPanel x:Name="BreakdownList">
+                <!-- 动态填充行 -->
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <TextBlock x:Name="StaleHint" Grid.Row="2" Visibility="Collapsed" Margin="0,8,0,0" FontSize="11" Foreground="{DynamicResource ThemeMutedForeground}" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>
+        </Grid>
+      </Grid>
+
+      <!-- Footer -->
+      <Grid Grid.Row="2">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="FooterLeft" FontSize="11" Foreground="{DynamicResource ThemeMutedForeground}" VerticalAlignment="Center"/>
+        <TextBlock x:Name="FooterRight" Grid.Column="1" FontSize="11" Foreground="{DynamicResource ThemeMutedForeground}" VerticalAlignment="Center"/>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

@@ -1,0 +1,157 @@
+<Window x:Class="OcgStatus.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="设置" Height="440" Width="500" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="116"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- 左侧边栏 -->
+    <Border Grid.Row="0" Background="#F2F3F5" BorderBrush="#E2E2E6" BorderThickness="0,0,1,0">
+      <ListBox x:Name="NavList" Background="Transparent" BorderThickness="0" SelectionChanged="OnNavChanged">
+        <ListBoxItem Tag="login" Content="登录" Padding="10,8"/>
+        <ListBoxItem Tag="refresh" Content="刷新" Padding="10,8"/>
+        <ListBoxItem Tag="appearance" Content="外观" Padding="10,8"/>
+        <ListBoxItem Tag="display" Content="显示内容" Padding="10,8"/>
+      </ListBox>
+    </Border>
+
+    <!-- 右侧内容 -->
+    <Grid Grid.Row="0" Grid.Column="1" Margin="14,12,14,8">
+
+      <!-- 登录页 -->
+      <StackPanel x:Name="LoginPage" Visibility="Collapsed">
+        <StackPanel x:Name="LoginScroll" MaxHeight="330">
+          <TextBlock Text="Workspace ID" FontWeight="SemiBold"/>
+          <TextBox x:Name="WsBox" Margin="0,4,0,0" ToolTip="形如 wrk_...；可在 opencode.ai Go 页地址栏复制"/>
+
+          <TextBlock Text="Auth Cookie" FontWeight="SemiBold" Margin="0,12,0,0"/>
+          <TextBlock x:Name="LoginHint" Text="opencode.ai 登录后：DevTools → Application → Cookies → auth（Fe26.2**…）的值" FontSize="11" Foreground="#9CA3AF" TextWrapping="Wrap" Margin="0,2,0,0"/>
+          <TextBox x:Name="AuthBox" Margin="0,4,0,0" Height="90" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ToolTip="粘贴 auth 的值"/>
+
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <Button Content="测试连接" Padding="12,3" Click="OnTestClick"/>
+            <TextBlock x:Name="TestResult" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#6B7280" TextWrapping="Wrap"/>
+          </StackPanel>
+
+          <Button Content="清除已保存的 Workspace 与 Cookie" Margin="0,12,0,0" Padding="8,3" HorizontalAlignment="Left" Click="OnLogoutClick"/>
+        </StackPanel>
+      </StackPanel>
+
+      <!-- 刷新页 -->
+      <StackPanel x:Name="RefreshPage" Visibility="Collapsed">
+        <TextBlock Text="自动刷新间隔（秒）" FontWeight="SemiBold"/>
+        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+          <TextBox x:Name="IntervalBox" Width="90"/>
+          <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Foreground="#6B7280" Text="30–86400，默认 300"/>
+        </StackPanel>
+        <CheckBox x:Name="TopmostBox" Content="窗口始终置顶" Margin="0,14,0,0"/>
+        <CheckBox x:Name="AutoStartBox" Content="开机自启动（Windows）" Margin="0,8,0,0"/>
+        <TextBlock x:Name="RefreshHint" FontSize="11" Foreground="#9CA3AF" TextWrapping="Wrap" Margin="0,16,0,0"
+                   Text="改动即时生效（无需保存）。后台静默刷新，网络波动时保留上次数据并自动重试。"/>
+      </StackPanel>
+
+      <!-- 外观页 -->
+      <StackPanel x:Name="AppearancePage" Visibility="Collapsed">
+        <TextBlock Text="主题" FontWeight="SemiBold"/>
+        <ComboBox x:Name="ThemeBox" Margin="0,4,0,0" Width="160" HorizontalAlignment="Left" SelectionChanged="OnAnyAppearanceChange">
+          <ComboBoxItem Tag="system" Content="跟随系统"/>
+          <ComboBoxItem Tag="light" Content="亮色"/>
+          <ComboBoxItem Tag="dark" Content="暗色"/>
+        </ComboBox>
+
+        <TextBlock Text="窗口透明度（1–100）" FontWeight="SemiBold" Margin="0,12,0,0"/>
+        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+          <TextBox x:Name="OpacityBox" Width="64" TextChanged="OnOpacityTextChanged"/>
+          <TextBlock x:Name="OpacityLabel" Text="100%" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="#6B7280"/>
+        </StackPanel>
+        <TextBlock Text="对纯色 / 渐变 / 图片背景均生效，即输即用" FontSize="11" Foreground="#9CA3AF" Margin="0,2,0,0"/>
+
+        <TextBlock Text="背景" FontWeight="SemiBold" Margin="0,12,0,0"/>
+        <ComboBox x:Name="BgKindBox" Margin="0,4,0,0" Width="160" HorizontalAlignment="Left" SelectionChanged="OnAnyAppearanceChange">
+          <ComboBoxItem Tag="solid" Content="纯色"/>
+          <ComboBoxItem Tag="gradient" Content="渐变"/>
+          <ComboBoxItem Tag="image" Content="图片"/>
+        </ComboBox>
+
+        <!-- 纯色/渐变：调色盘 -->
+        <StackPanel x:Name="SolidPanel" Visibility="Collapsed" Margin="0,8,0,0">
+          <StackPanel Orientation="Horizontal">
+            <Button Content="选择颜色…" Padding="10,3" Click="OnPickSolidColor"/>
+            <Rectangle x:Name="SolidPreview" Width="34" Height="18" RadiusX="3" RadiusY="3" Margin="10,0,0,0" Stroke="#999" VerticalAlignment="Center"/>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel x:Name="GradientPanel" Visibility="Collapsed" Margin="0,8,0,0">
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+            <Button Content="颜色 1…" Padding="10,3" Click="OnPickGrad1"/>
+            <Rectangle x:Name="Grad1Preview" Width="34" Height="18" RadiusX="3" RadiusY="3" Margin="10,0,0,0" Stroke="#999" VerticalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Button Content="颜色 2…" Padding="10,3" Click="OnPickGrad2"/>
+            <Rectangle x:Name="Grad2Preview" Width="34" Height="18" RadiusX="3" RadiusY="3" Margin="10,0,0,0" Stroke="#999" VerticalAlignment="Center"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- 图片 -->
+        <StackPanel x:Name="ImagePanel" Visibility="Collapsed" Margin="0,8,0,0">
+          <StackPanel Orientation="Horizontal">
+            <TextBox x:Name="BgImagePathBox" Width="220" TextChanged="OnAnyAppearanceChange"/>
+            <Button Content="浏览…" Padding="8,3" Margin="6,0,0,0" Click="OnBrowseImage"/>
+          </StackPanel>
+        </StackPanel>
+
+        <DockPanel Margin="0,14,0,0">
+          <TextBlock Text="圆角" Width="86" VerticalAlignment="Center"/>
+          <ComboBox x:Name="CornerBox" Width="110" HorizontalAlignment="Left" SelectionChanged="OnAnyAppearanceChange">
+            <ComboBoxItem Tag="0" Content="直角"/>
+            <ComboBoxItem Tag="8" Content="圆角 8"/>
+            <ComboBoxItem Tag="12" Content="圆角 12"/>
+          </ComboBox>
+        </DockPanel>
+
+        <DockPanel Margin="0,8,0,0">
+          <TextBlock Text="窗口尺寸" Width="86" VerticalAlignment="Center"/>
+          <ComboBox x:Name="SizeBox" Width="110" HorizontalAlignment="Left" SelectionChanged="OnAnyAppearanceChange">
+            <ComboBoxItem Tag="small" Content="小 280×190"/>
+            <ComboBoxItem Tag="medium" Content="中 320×210"/>
+            <ComboBoxItem Tag="large" Content="大 360×260"/>
+            <ComboBoxItem Tag="custom" Content="自定义…"/>
+          </ComboBox>
+        </DockPanel>
+        <StackPanel x:Name="CustomSizePanel" Orientation="Horizontal" Margin="86,6,0,0" Visibility="Collapsed">
+          <TextBlock Text="宽" VerticalAlignment="Center"/>
+          <TextBox x:Name="CustomWBox" Width="52" Margin="6,0,10,0" TextChanged="OnAnyAppearanceChange"/>
+          <TextBlock Text="高" VerticalAlignment="Center"/>
+          <TextBox x:Name="CustomHBox" Width="52" Margin="6,0,0,0" TextChanged="OnAnyAppearanceChange"/>
+        </StackPanel>
+        <CheckBox x:Name="ShadowBox" Margin="0" Visibility="Collapsed"/>
+      </StackPanel>
+
+      <!-- 显示内容页 -->
+      <StackPanel x:Name="DisplayPage" Visibility="Collapsed">
+        <TextBlock Text="显示内容" FontWeight="SemiBold"/>
+        <CheckBox x:Name="ShowProgressBox" Content="进度条" Margin="0,10,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+        <CheckBox x:Name="ShowPercentBox" Content="百分比" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+        <CheckBox x:Name="ShowResetBox" Content="剩余重置时间" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+        <CheckBox x:Name="ShowUseBalanceBox" Content="余额接续信息" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+        <CheckBox x:Name="ShowBdTooltipBox" Content="模型分摊·悬浮提示" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+        <CheckBox x:Name="ShowBdDetailBox" Content="模型分摊·点击展开" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- 底部按钮 -->
+    <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#FAFAFA" BorderBrush="#E2E2E6" BorderThickness="0,1,0,0">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,14,10">
+        <Button Content="取消" Padding="12,4" Margin="0,0,8,0" Click="OnCancel"/>
+        <Button Content="保存" Padding="16,4" IsDefault="True" Click="OnSave"/>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>
