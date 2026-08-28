@@ -13,6 +13,7 @@
     <Version>0.1.0</Version>
     <Authors>OcgStatus</Authors>
     <Product>OcgStatus</Product>
+    <ApplicationIcon>Assets\ocg.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
@@ -27,5 +28,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\ocg.ico"/>
   </ItemGroup>
 </Project>

@@ -60,7 +60,7 @@ public partial class MainWindow : Window
         {
             Visible = true,
             Text = "OcgStatus",
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = LoadAppIcon(),
         };
         var menu = new System.Windows.Forms.ContextMenuStrip();
         menu.Items.Add("显示", null, (_, _) => ShowFromTray());
@@ -71,6 +71,18 @@ public partial class MainWindow : Window
         menu.Items.Add("退出", null, (_, _) => ReallyClose());
         _tray.ContextMenuStrip = menu;
         _tray.DoubleClick += (_, _) => ShowFromTray();
+    }
+
+    private static System.Drawing.Icon? LoadAppIcon()
+    {
+        try
+        {
+            var sri = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/ocg.ico"));
+            if (sri is not null)
+                using (var s = sri.Stream) return new System.Drawing.Icon(s);
+        }
+        catch { }
+        return System.Drawing.SystemIcons.Application;
     }
 
     private void ShowFromTray()
