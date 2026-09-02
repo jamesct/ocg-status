@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>OcgStatus</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>OcgStatus</Authors>
     <Product>OcgStatus</Product>
     <ApplicationIcon>Assets\ocg.ico</ApplicationIcon>

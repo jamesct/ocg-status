@@ -32,8 +32,10 @@
           <TextBox x:Name="WsBox" Margin="0,4,0,0" ToolTip="形如 wrk_...；可在 opencode.ai Go 页地址栏复制"/>
 
           <TextBlock Text="Auth Cookie" FontWeight="SemiBold" Margin="0,12,0,0"/>
-          <TextBlock x:Name="LoginHint" Text="opencode.ai 登录后：DevTools → Application → Cookies → auth（Fe26.2**…）的值" FontSize="11" Foreground="#9CA3AF" TextWrapping="Wrap" Margin="0,2,0,0"/>
-          <TextBox x:Name="AuthBox" Margin="0,4,0,0" Height="90" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ToolTip="粘贴 auth 的值"/>
+          <TextBlock x:Name="LoginHint" FontSize="11" Foreground="#9CA3AF" TextWrapping="Wrap" Margin="0,2,0,0">
+            登录后访问 <Hyperlink NavigateUri="https://opencode.ai/auth" RequestNavigate="OnHyperlinkNavigate"><TextBlock Text="https://opencode.ai/auth" Foreground="#2563EB"/></Hyperlink>，在 DevTools 中复制名为 auth 的 Cookie 值。格式：auth=...（直接粘贴 token 会自动补全 auth=）
+          </TextBlock>
+          <TextBox x:Name="AuthBox" Margin="0,4,0,0" Height="90" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" ToolTip="粘贴 auth 的值，支持 auth=... 格式或直接粘贴 token"/>
 
           <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
             <Button Content="测试连接" Padding="12,3" Click="OnTestClick"/>
@@ -139,7 +141,8 @@
         <TextBlock Text="显示内容" FontWeight="SemiBold"/>
         <CheckBox x:Name="ShowProgressBox" Content="进度条" Margin="0,10,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
         <CheckBox x:Name="ShowPercentBox" Content="百分比" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
-        <CheckBox x:Name="ShowResetBox" Content="剩余重置时间" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+        <CheckBox x:Name="ShowRollingResetBox" Content="5小时剩余重置时间" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
+        <CheckBox x:Name="ShowResetBox" Content="周 / 月剩余重置时间" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
         <CheckBox x:Name="ShowUseBalanceBox" Content="余额接续信息" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
         <CheckBox x:Name="ShowBdTooltipBox" Content="模型分摊·悬浮提示" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>
         <CheckBox x:Name="ShowBdDetailBox" Content="模型分摊·点击展开" Margin="0,8,0,0" Checked="OnAnyAppearanceChange" Unchecked="OnAnyAppearanceChange"/>

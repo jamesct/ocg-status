@@ -27,7 +27,8 @@ public sealed class AppearanceSettings
     // 可见性开关
     public bool ShowProgress { get; set; } = true;
     public bool ShowPercent { get; set; } = true;
-    public bool ShowReset { get; set; } = true;
+    public bool ShowRollingReset { get; set; } = true; // 5 小时剩余重置时间
+    public bool ShowReset { get; set; } = true;        // 周 / 月剩余重置时间
     public bool ShowUseBalance { get; set; } = true;
     public bool ShowBreakdownTooltip { get; set; } = true;
     public bool ShowBreakdownDetail { get; set; } = true;

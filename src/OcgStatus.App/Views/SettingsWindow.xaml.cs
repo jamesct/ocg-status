@@ -56,6 +56,7 @@ public partial class SettingsWindow : Window
         // 显示内容页
         ShowProgressBox.IsChecked = a.ShowProgress;
         ShowPercentBox.IsChecked = a.ShowPercent;
+        ShowRollingResetBox.IsChecked = a.ShowRollingReset;
         ShowResetBox.IsChecked = a.ShowReset;
         ShowUseBalanceBox.IsChecked = a.ShowUseBalance;
         ShowBdTooltipBox.IsChecked = a.ShowBreakdownTooltip;
@@ -138,6 +139,7 @@ public partial class SettingsWindow : Window
         if (double.TryParse(CustomHBox.Text.Trim(), out var ch)) a.CustomHeight = Math.Clamp(ch, 140, 600);
         a.ShowProgress = ShowProgressBox.IsChecked == true;
         a.ShowPercent = ShowPercentBox.IsChecked == true;
+        a.ShowRollingReset = ShowRollingResetBox.IsChecked == true;
         a.ShowReset = ShowResetBox.IsChecked == true;
         a.ShowUseBalance = ShowUseBalanceBox.IsChecked == true;
         a.ShowBreakdownTooltip = ShowBdTooltipBox.IsChecked == true;
@@ -207,10 +209,30 @@ public partial class SettingsWindow : Window
 
     // ---------- 登录 ----------
 
+    private void OnHyperlinkNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch { }
+        e.Handled = true;
+    }
+
+    private static string NormalizeCookie(string raw)
+    {
+        var trimmed = raw?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmed)) return string.Empty;
+        // 若不含 '='，则视为纯 token，自动补全 auth= 前缀
+        if (!trimmed.Contains('='))
+            return $"auth={trimmed}";
+        return trimmed;
+    }
+
     private async void OnTestClick(object sender, RoutedEventArgs e)
     {
         var ws = WsBox.Text.Trim();
-        var auth = AuthBox.Text.Trim();
+        var auth = NormalizeCookie(AuthBox.Text);
         if (string.IsNullOrWhiteSpace(ws) || string.IsNullOrWhiteSpace(auth))
         {
             TestResult.Text = "请先填写 Workspace 与 Auth Cookie";
@@ -252,7 +274,7 @@ public partial class SettingsWindow : Window
     private void OnSave(object sender, RoutedEventArgs e)
     {
         var ws = WsBox.Text.Trim();
-        var auth = AuthBox.Text.Trim();
+        var auth = NormalizeCookie(AuthBox.Text);
         if (_initialPage == "login" && string.IsNullOrWhiteSpace(ws))
         {
             System.Windows.MessageBox.Show(this, "请填写以 wrk_ 开头的 Workspace ID。", "提示");
@@ -260,7 +282,7 @@ public partial class SettingsWindow : Window
         }
         if (_initialPage == "login" && string.IsNullOrWhiteSpace(auth))
         {
-            System.Windows.MessageBox.Show(this, "请粘贴 auth Cookie（Fe26.2**… 的值）。", "提示");
+            System.Windows.MessageBox.Show(this, "请粘贴 auth Cookie（格式如 auth=... 或直接粘贴 token）。", "提示");
             return;
         }
         if (!string.IsNullOrWhiteSpace(ws) && !ws.StartsWith("wrk_", StringComparison.Ordinal))

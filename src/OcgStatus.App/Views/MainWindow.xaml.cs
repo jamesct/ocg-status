@@ -33,12 +33,15 @@ public partial class MainWindow : Window
         DataContext = _vm;
         _vm.PropertyChanged += OnVmChanged;
 
-        if (_settings.WindowLeft is not null && _settings.WindowTop is not null)
+        if (_settings.WindowLeft is { } wl && _settings.WindowTop is { } wt && !double.IsNaN(wl) && !double.IsNaN(wt))
         {
             WindowStartupLocation = WindowStartupLocation.Manual;
-            Left = _settings.WindowLeft.Value;
-            Top = _settings.WindowTop.Value;
-            EnsureOnScreen();
+            Left = wl;
+            Top = wt;
+        }
+        else
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
         }
 
         Topmost = _settings.AlwaysOnTop;
@@ -49,6 +52,7 @@ public partial class MainWindow : Window
     {
         InitTray();
         ApplyAppearance();
+        EnsureOnScreen();
         _vm.Start();
         RefreshUi();
     }
@@ -67,6 +71,7 @@ public partial class MainWindow : Window
         menu.Items.Add("刷新", null, async (_, _) => await _vm.RefreshAsync());
         menu.Items.Add("登录", null, (_, _) => OpenSettings("login"));
         menu.Items.Add("设置", null, (_, _) => OpenSettings());
+        menu.Items.Add("重置窗口位置", null, (_, _) => ResetPositionToCenter());
         menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => ReallyClose());
         _tray.ContextMenuStrip = menu;
@@ -87,6 +92,25 @@ public partial class MainWindow : Window
 
     private void ShowFromTray()
     {
+        EnsureOnScreen();
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    public void ResetPositionToCenter()
+    {
+        var wa = SystemParameters.WorkArea;
+        var (w, h) = WindowSizePresets.Resolve(_settings.Appearance.WindowSize, _settings.Appearance);
+        if (!double.IsNaN(Width) && Width > 0) w = Width;
+        if (!double.IsNaN(Height) && Height > 0) h = Height;
+
+        Left = Math.Max(wa.Left, wa.Left + (wa.Width - w) / 2);
+        Top = Math.Max(wa.Top, wa.Top + (wa.Height - h) / 2);
+        _settings.WindowLeft = Left;
+        _settings.WindowTop = Top;
+        _settings.Save(AppPaths.SettingsPath);
+
         Show();
         WindowState = WindowState.Normal;
         Activate();
@@ -133,7 +157,7 @@ public partial class MainWindow : Window
         WeeklyPct.Visibility = a.ShowPercent ? Visibility.Visible : Visibility.Collapsed;
         MonthlyPct.Visibility = a.ShowPercent ? Visibility.Visible : Visibility.Collapsed;
 
-        RollingReset.Visibility = a.ShowReset ? Visibility.Visible : Visibility.Collapsed;
+        RollingReset.Visibility = a.ShowRollingReset ? Visibility.Visible : Visibility.Collapsed;
         WeeklyReset.Visibility = a.ShowReset ? Visibility.Visible : Visibility.Collapsed;
         MonthlyReset.Visibility = a.ShowReset ? Visibility.Visible : Visibility.Collapsed;
 
@@ -230,21 +254,104 @@ public partial class MainWindow : Window
 
     private ToolTip? BuildTooltip(UsageWindowKind kind)
     {
-        var bd = _vm.BreakdownFor(kind);
-        if (bd is null) return null;
+        var s = _vm.Snapshot;
+        if (s is null) return null;
+        var w = kind switch
+        {
+            UsageWindowKind.Rolling => s.Rolling,
+            UsageWindowKind.Weekly => s.Weekly,
+            _ => s.Monthly,
+        };
+        var limitUsd = kind switch
+        {
+            UsageWindowKind.Rolling => 12,
+            UsageWindowKind.Weekly => 30,
+            _ => 60,
+        };
+
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"{UsageWindow.DisplayName(kind)} · 已用 {bd.UsagePercent:0.#}%");
-        foreach (var r in bd.Rows.Take(8))
-            sb.AppendLine($"  {r.Name} · ${r.QuotaCost.CostInUsd():0.00} · {r.ContributionPercent:0.#}%");
-        if (bd.Rows.Count > 8) sb.AppendLine($"  … 共 {bd.Rows.Count} 个模型");
+        sb.AppendLine($"{UsageWindow.DisplayName(kind)} · 已用 {w.UsagePercent:0.#}% (限额 ${limitUsd})");
+        sb.AppendLine($"重置剩余：{Formatting.FormatReset(w.ResetInSec)}" + (w.IsRateLimited ? " · 已限流" : string.Empty));
+
+        var bd = _vm.BreakdownFor(kind);
+        if (bd is not null && bd.Rows.Count > 0)
+        {
+            sb.AppendLine("模型分摊：");
+            foreach (var r in bd.Rows.Take(8))
+                sb.AppendLine($"  {r.Name} · ${r.QuotaCost.CostInUsd():0.00} · {r.ContributionPercent:0.#}%");
+            if (bd.Rows.Count > 8) sb.AppendLine($"  … 共 {bd.Rows.Count} 个模型");
+        }
         return new ToolTip { Content = sb.ToString().TrimEnd(), Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
     }
 
     private UsageWindowKind? _openBreakdownKind;
 
-    /// <summary>点击窗口任意非行位置时关闭模型展开面板</summary>
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    private const int WM_SYSCOMMAND = 0x0112;
+    private const int SC_SIZE = 0xF000;
+    private const int WMSZ_LEFT = 1;
+    private const int WMSZ_RIGHT = 2;
+    private const int WMSZ_TOP = 3;
+    private const int WMSZ_TOPLEFT = 4;
+    private const int WMSZ_TOPRIGHT = 5;
+    private const int WMSZ_BOTTOM = 6;
+    private const int WMSZ_BOTTOMLEFT = 7;
+    private const int WMSZ_BOTTOMRIGHT = 8;
+    private const int ResizeBorder = 6;
+
+    private int GetResizeDirection(System.Windows.Point p)
+    {
+        bool left = p.X <= ResizeBorder;
+        bool right = p.X >= ActualWidth - ResizeBorder;
+        bool top = p.Y <= ResizeBorder;
+        bool bottom = p.Y >= ActualHeight - ResizeBorder;
+
+        if (top && left) return WMSZ_TOPLEFT;
+        if (top && right) return WMSZ_TOPRIGHT;
+        if (bottom && left) return WMSZ_BOTTOMLEFT;
+        if (bottom && right) return WMSZ_BOTTOMRIGHT;
+        if (left) return WMSZ_LEFT;
+        if (right) return WMSZ_RIGHT;
+        if (top) return WMSZ_TOP;
+        if (bottom) return WMSZ_BOTTOM;
+        return 0;
+    }
+
+    private void OnPreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed) return;
+        var p = e.GetPosition(this);
+        var dir = GetResizeDirection(p);
+        Cursor = dir switch
+        {
+            WMSZ_LEFT or WMSZ_RIGHT => System.Windows.Input.Cursors.SizeWE,
+            WMSZ_TOP or WMSZ_BOTTOM => System.Windows.Input.Cursors.SizeNS,
+            WMSZ_TOPLEFT or WMSZ_BOTTOMRIGHT => System.Windows.Input.Cursors.SizeNWSE,
+            WMSZ_TOPRIGHT or WMSZ_BOTTOMLEFT => System.Windows.Input.Cursors.SizeNESW,
+            _ => System.Windows.Input.Cursors.Arrow,
+        };
+    }
+
+    /// <summary>点击窗口边缘拖拽缩放或点击非行位置关闭模型展开面板</summary>
     private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            var p = e.GetPosition(this);
+            var dir = GetResizeDirection(p);
+            if (dir != 0)
+            {
+                if (PresentationSource.FromVisual(this) is System.Windows.Interop.HwndSource source)
+                {
+                    e.Handled = true;
+                    SendMessage(source.Handle, WM_SYSCOMMAND, (IntPtr)(SC_SIZE + dir), IntPtr.Zero);
+                    return;
+                }
+            }
+        }
+
         if (BreakdownPanel.Visibility != Visibility.Visible) return;
         // 命中行不做处理（行的 OnRowClick 负责切换）；点空白关闭
         var hit = System.Windows.Media.VisualTreeHelper.HitTest(this, e.GetPosition(this))?.VisualHit;
@@ -433,23 +540,60 @@ public partial class MainWindow : Window
         ApplyAppearance();
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e) { }
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        EnsureOnScreen();
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        base.OnRenderSizeChanged(sizeInfo);
+        if (IsLoaded && sizeInfo.NewSize.Width >= 200 && sizeInfo.NewSize.Height >= 160)
+        {
+            if (Math.Abs(sizeInfo.NewSize.Width - sizeInfo.PreviousSize.Width) > 0.5 ||
+                Math.Abs(sizeInfo.NewSize.Height - sizeInfo.PreviousSize.Height) > 0.5)
+            {
+                _settings.Appearance.WindowSize = "custom";
+                _settings.Appearance.CustomWidth = Math.Round(sizeInfo.NewSize.Width);
+                _settings.Appearance.CustomHeight = Math.Round(sizeInfo.NewSize.Height);
+                _settings.Save(AppPaths.SettingsPath);
+            }
+        }
+    }
 
     private void OnLocationChanged(object? sender, EventArgs e)
     {
-        _settings.WindowLeft = Left;
-        _settings.WindowTop = Top;
-        _settings.Save(AppPaths.SettingsPath);
+        if (!double.IsNaN(Left) && !double.IsNaN(Top))
+        {
+            _settings.WindowLeft = Left;
+            _settings.WindowTop = Top;
+            _settings.Save(AppPaths.SettingsPath);
+        }
     }
 
     private void EnsureOnScreen()
     {
         var wa = SystemParameters.WorkArea;
-        if (Left < wa.Left - 40) Left = wa.Left + 10;
-        if (Top < wa.Top - 40) Top = wa.Top + 10;
-        if (Left + Width > wa.Right + 40) Left = wa.Right - Width - 10;
-        if (Top + Height > wa.Bottom + 40) Top = wa.Bottom - Height - 10;
+        var (w, h) = WindowSizePresets.Resolve(_settings.Appearance.WindowSize, _settings.Appearance);
+        if (!double.IsNaN(Width) && Width > 0) w = Width;
+        if (!double.IsNaN(Height) && Height > 0) h = Height;
+
+        if (double.IsNaN(Left) || Left < wa.Left - 20 || Left > wa.Right - 60)
+        {
+            Left = Math.Max(wa.Left + 20, wa.Right - w - 40);
+        }
+        if (double.IsNaN(Top) || Top < wa.Top - 20 || Top > wa.Bottom - 60)
+        {
+            Top = Math.Max(wa.Top + 20, wa.Top + 80);
+        }
+
+        if (Left + w > wa.Right) Left = Math.Max(wa.Left, wa.Right - w);
+        if (Top + h > wa.Bottom) Top = Math.Max(wa.Top, wa.Bottom - h);
+        if (Left < wa.Left) Left = wa.Left;
+        if (Top < wa.Top) Top = wa.Top;
     }
+
+    private void OnResetPositionClick(object sender, RoutedEventArgs e) => ResetPositionToCenter();
 
     private void OnMenuClick(object sender, RoutedEventArgs e)
     {
