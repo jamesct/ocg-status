@@ -33,15 +33,18 @@ public partial class MainWindow : Window
         DataContext = _vm;
         _vm.PropertyChanged += OnVmChanged;
 
+        WindowStartupLocation = WindowStartupLocation.Manual;
         if (_settings.WindowLeft is { } wl && _settings.WindowTop is { } wt && !double.IsNaN(wl) && !double.IsNaN(wt))
         {
-            WindowStartupLocation = WindowStartupLocation.Manual;
             Left = wl;
             Top = wt;
         }
         else
         {
-            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            var wa = SystemParameters.WorkArea;
+            var (w, h) = WindowSizePresets.Resolve(_settings.Appearance.WindowSize, _settings.Appearance);
+            Left = Math.Max(wa.Left, wa.Left + (wa.Width - w) / 2);
+            Top = Math.Max(wa.Top, wa.Top + (wa.Height - h) / 2);
         }
 
         Topmost = _settings.AlwaysOnTop;
@@ -136,8 +139,8 @@ public partial class MainWindow : Window
         Width = w;
         Height = h;
 
-        // 透明度
-        Opacity = Math.Clamp(a.Opacity, 0.5, 1.0);
+        // 透明度（最低 20%）
+        Opacity = Math.Clamp(a.Opacity, 0.2, 1.0);
 
         // 圆角
         MainCard.CornerRadius = new CornerRadius(Math.Clamp(a.CornerRadius, 0, 16));
@@ -529,7 +532,16 @@ public partial class MainWindow : Window
 
     private void OnTitleBarMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton == MouseButton.Left) DragMove();
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            DragMove();
+            if (!double.IsNaN(Left) && !double.IsNaN(Top))
+            {
+                _settings.WindowLeft = Left;
+                _settings.WindowTop = Top;
+                _settings.Save(AppPaths.SettingsPath);
+            }
+        }
         if (e.ClickCount == 2) ToggleCompact();
     }
 
@@ -538,11 +550,6 @@ public partial class MainWindow : Window
         _settings.CompactMode = !_settings.CompactMode;
         _settings.Save(AppPaths.SettingsPath);
         ApplyAppearance();
-    }
-
-    private void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        EnsureOnScreen();
     }
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -563,7 +570,7 @@ public partial class MainWindow : Window
 
     private void OnLocationChanged(object? sender, EventArgs e)
     {
-        if (!double.IsNaN(Left) && !double.IsNaN(Top))
+        if (IsLoaded && !double.IsNaN(Left) && !double.IsNaN(Top))
         {
             _settings.WindowLeft = Left;
             _settings.WindowTop = Top;
@@ -573,24 +580,35 @@ public partial class MainWindow : Window
 
     private void EnsureOnScreen()
     {
-        var wa = SystemParameters.WorkArea;
+        if (double.IsNaN(Left) || double.IsNaN(Top))
+        {
+            ResetPositionToCenter();
+            return;
+        }
+
         var (w, h) = WindowSizePresets.Resolve(_settings.Appearance.WindowSize, _settings.Appearance);
         if (!double.IsNaN(Width) && Width > 0) w = Width;
         if (!double.IsNaN(Height) && Height > 0) h = Height;
 
-        if (double.IsNaN(Left) || Left < wa.Left - 20 || Left > wa.Right - 60)
+        try
         {
-            Left = Math.Max(wa.Left + 20, wa.Right - w - 40);
-        }
-        if (double.IsNaN(Top) || Top < wa.Top - 20 || Top > wa.Bottom - 60)
-        {
-            Top = Math.Max(wa.Top + 20, wa.Top + 80);
-        }
+            var centerPt = new System.Drawing.Point((int)(Left + w / 2), (int)(Top + h / 2));
+            var screen = System.Windows.Forms.Screen.FromPoint(centerPt);
+            var wa = screen.WorkingArea;
 
-        if (Left + w > wa.Right) Left = Math.Max(wa.Left, wa.Right - w);
-        if (Top + h > wa.Bottom) Top = Math.Max(wa.Top, wa.Bottom - h);
-        if (Left < wa.Left) Left = wa.Left;
-        if (Top < wa.Top) Top = wa.Top;
+            if (Left + w < wa.Left + 40) Left = wa.Left + 10;
+            if (Left > wa.Right - 40) Left = Math.Max(wa.Left, wa.Right - w - 10);
+            if (Top + h < wa.Top + 30) Top = wa.Top + 10;
+            if (Top > wa.Bottom - 30) Top = Math.Max(wa.Top, wa.Bottom - h - 10);
+        }
+        catch
+        {
+            var wa = SystemParameters.WorkArea;
+            if (Left + w < wa.Left + 40) Left = wa.Left + 10;
+            if (Left > wa.Right - 40) Left = Math.Max(wa.Left, wa.Right - w - 10);
+            if (Top + h < wa.Top + 30) Top = wa.Top + 10;
+            if (Top > wa.Bottom - 30) Top = Math.Max(wa.Top, wa.Bottom - h - 10);
+        }
     }
 
     private void OnResetPositionClick(object sender, RoutedEventArgs e) => ResetPositionToCenter();
@@ -646,6 +664,12 @@ public partial class MainWindow : Window
             e.Cancel = true;
             Hide();
             return;
+        }
+        if (!double.IsNaN(Left) && !double.IsNaN(Top))
+        {
+            _settings.WindowLeft = Left;
+            _settings.WindowTop = Top;
+            _settings.Save(AppPaths.SettingsPath);
         }
         _vm.Stop();
         _tray?.Dispose();

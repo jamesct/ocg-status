@@ -68,7 +68,7 @@
           <ComboBoxItem Tag="dark" Content="暗色"/>
         </ComboBox>
 
-        <TextBlock Text="窗口透明度（1–100）" FontWeight="SemiBold" Margin="0,12,0,0"/>
+        <TextBlock Text="窗口透明度（20–100）" FontWeight="SemiBold" Margin="0,12,0,0"/>
         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
           <TextBox x:Name="OpacityBox" Width="64" TextChanged="OnOpacityTextChanged"/>
           <TextBlock x:Name="OpacityLabel" Text="100%" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="#6B7280"/>

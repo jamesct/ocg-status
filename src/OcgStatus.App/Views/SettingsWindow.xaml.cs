@@ -41,7 +41,7 @@ public partial class SettingsWindow : Window
 
         // 外观页
         SelectTag(ThemeBox, a.Theme);
-        OpacityBox.Text = Math.Clamp((int)Math.Round(a.Opacity * 100), 1, 100).ToString();
+        OpacityBox.Text = Math.Clamp((int)Math.Round(a.Opacity * 100), 20, 100).ToString();
         SelectTag(BgKindBox, a.BackgroundKind);
         BgImagePathBox.Text = a.BackgroundImagePath;
         SolidPreview.Fill = ParseBrush(a.BackgroundColor) ?? System.Windows.Media.Brushes.Transparent;
@@ -105,12 +105,12 @@ public partial class SettingsWindow : Window
         CustomSizePanel.Visibility = SelectedTag(SizeBox) == "custom" ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    /// <summary>透明度文本框（1–100）：即输即用，实时应用到窗口</summary>
+    /// <summary>透明度文本框（20–100）：即输即用，实时应用到窗口</summary>
     private void OnOpacityTextChanged(object sender, TextChangedEventArgs e)
     {
         if (_loading) return;
         if (!int.TryParse(OpacityBox.Text.Trim(), out var v)) return;
-        v = Math.Clamp(v, 1, 100);
+        v = Math.Clamp(v, 20, 100);
         var a = _settings.Appearance;
         a.Opacity = v / 100d;
         OpacityLabel.Text = $"{v}%";
@@ -129,7 +129,7 @@ public partial class SettingsWindow : Window
     {
         var a = _settings.Appearance;
         a.Theme = SelectedTag(ThemeBox) is { } t and not "" ? t : "system";
-        if (int.TryParse(OpacityBox.Text.Trim(), out var ov)) a.Opacity = Math.Clamp(ov, 1, 100) / 100d;
+        if (int.TryParse(OpacityBox.Text.Trim(), out var ov)) a.Opacity = Math.Clamp(ov, 20, 100) / 100d;
         a.BackgroundKind = SelectedTag(BgKindBox) is { } bk and not "" ? bk : "solid";
         a.BackgroundImagePath = BgImagePathBox.Text.Trim();
         a.CornerRadius = double.TryParse(SelectedTag(CornerBox), out var cr) ? cr : 12;

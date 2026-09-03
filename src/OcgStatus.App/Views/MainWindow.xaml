@@ -4,11 +4,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="OcgStatus" WindowStartupLocation="CenterScreen"
+        Title="OcgStatus" WindowStartupLocation="Manual"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False"
         ResizeMode="NoResize" MinWidth="200" MinHeight="160"
-        Loaded="OnLoaded" Closing="OnClosing" LocationChanged="OnLocationChanged"
+        Closing="OnClosing" LocationChanged="OnLocationChanged"
         PreviewMouseMove="OnPreviewMouseMove"
         PreviewMouseLeftButtonDown="OnPreviewMouseDown">
   <Window.Resources>
